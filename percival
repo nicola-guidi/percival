@@ -27,7 +27,7 @@
 # The program can be omitted: percival uses the last one you worked on.
 set -euo pipefail
 
-PERCIVAL_VERSION="0.2.0"
+PERCIVAL_VERSION="0.2.1"
 
 # resolve our real location (works through symlinks, e.g. ~/.local/bin/percival)
 _src="${BASH_SOURCE[0]}"
