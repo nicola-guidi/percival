@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel new [program] — onboarding for a new bug-bounty program (ex bb-init).
+# percival new [program] — onboarding for a new bug-bounty program (ex bb-init).
 #
 # Asks everything ONCE; every other command reads it from here and never asks again.
 #   1 name · 2 platform · 3 program URL · 4 UA suffix · 5 custom header(s)
@@ -7,14 +7,14 @@
 #   9b paths OUT (excluded on every host) · 10 wordlist · 11 rate limit · 12 program rules
 #   13 port scanning allowed · 14 run recon now
 #
-# Writes <program>/{kestrel.conf, scope, headers.txt, notes/rules.md, env.sh, recon/*}.
+# Writes <program>/{percival.conf, scope, headers.txt, notes/rules.md, env.sh, recon/*}.
 
 cmd_new_help() {
   cat >&2 <<'EOF'
-usage: kestrel new [program] [--force]
+usage: percival new [program] [--force]
 
   Interactive onboarding. Paste scope blocks straight from the program page:
-  kestrel extracts hosts, wildcards and IP ranges and ignores the rest.
+  percival extracts hosts, wildcards and IP ranges and ignores the rest.
 
   --force   overwrite an existing program's settings (recon results are kept)
 EOF
@@ -26,13 +26,13 @@ cmd_new() {
     case "$a" in
       -h|--help) cmd_new_help; return 0 ;;
       --force)   force=1 ;;
-      -*)        ui_die "unknown option '$a'" "kestrel new --help" ;;
+      -*)        ui_die "unknown option '$a'" "percival new --help" ;;
       *)         name="$a" ;;
     esac
   done
 
   ui_header new "${name:-new program}"
-  have python3 || ui_die "python3 is required" "kestrel doctor --install"
+  have python3 || ui_die "python3 is required" "percival doctor --install"
   ensure_workspace
 
   # ---------------------------------------------------------------- 1 · identity
@@ -40,10 +40,10 @@ cmd_new() {
   [ -n "$name" ] || name="$(ui_ask 'Program name (folder name, e.g. acme)')"
   valid_program_name "$name" || ui_die "invalid name '$name' (letters, digits, . _ -)"
   local work; work="$(program_dir "$name")"
-  if [ -f "$work/kestrel.conf" ] && [ "$force" -eq 0 ]; then
-    ui_die "'$name' already exists" "kestrel scope $name   ·   kestrel new $name --force"
+  if [ -f "$work/percival.conf" ] && [ "$force" -eq 0 ]; then
+    ui_die "'$name' already exists" "percival scope $name   ·   percival new $name --force"
   fi
-  ui_info workspace "$KESTREL_BASE"
+  ui_info workspace "$PERCIVAL_BASE"
   ui_info folder "$work"
 
   local platform url
@@ -68,10 +68,10 @@ cmd_new() {
   ui_section scope
   local in_hosts out_hosts in_ips out_ips out_paths skipped
   skipped="$(mktemp)"
-  in_hosts="$(ui_ask_block 'Hosts & wildcards IN scope   (*.acme.com · api.acme.com)' | python3 "$KESTREL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
-  out_hosts="$(ui_ask_block 'Hosts, wildcards & keywords OUT of scope   (staging · old.acme.com)' | python3 "$KESTREL_ROOT/lib/scope.py" normalize out 2>>"$skipped")"
-  in_ips="$(ui_ask_block 'IPs / CIDR ranges IN scope   (203.0.113.7 · 10.0.0.0/16 · 2001:db8::/112)' | python3 "$KESTREL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
-  out_ips="$(ui_ask_block 'IPs / CIDR ranges OUT of scope' | python3 "$KESTREL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
+  in_hosts="$(ui_ask_block 'Hosts & wildcards IN scope   (*.acme.com · api.acme.com)' | python3 "$PERCIVAL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
+  out_hosts="$(ui_ask_block 'Hosts, wildcards & keywords OUT of scope   (staging · old.acme.com)' | python3 "$PERCIVAL_ROOT/lib/scope.py" normalize out 2>>"$skipped")"
+  in_ips="$(ui_ask_block 'IPs / CIDR ranges IN scope   (203.0.113.7 · 10.0.0.0/16 · 2001:db8::/112)' | python3 "$PERCIVAL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
+  out_ips="$(ui_ask_block 'IPs / CIDR ranges OUT of scope' | python3 "$PERCIVAL_ROOT/lib/scope.py" normalize in 2>>"$skipped")"
   # paths excluded on EVERY host (not hosts/IPs): kept as literal prefixes, normalized to a leading '/'
   out_paths="$(ui_ask_block 'Paths OUT of scope — excluded on EVERY host   (/arcgis/ · /internal/api/)' \
     | awk '{sub(/^[ \t]+/,""); sub(/[ \t]+$/,"")} $0=="" || $0 ~ /^#/ {next} {if(substr($0,1,1)!="/") $0="/" $0} $0!="/" && !seen[$0]++ {print}')"
@@ -85,7 +85,7 @@ cmd_new() {
   # ---------------------------------------------------------------- 4 · run settings
   ui_section settings
   local wordlist rate rules portscan proxy_default=n proxy_url=""
-  wordlist="$(ui_ask 'Wordlist' "$KESTREL_ROOT/wordlists/curated.txt")"
+  wordlist="$(ui_ask 'Wordlist' "$PERCIVAL_ROOT/wordlists/curated.txt")"
   wordlist="${wordlist/#\~/$HOME}"
   [ -s "$wordlist" ] || ui_warn wordlist "$wordlist not found — fuzz will need it"
   while :; do
@@ -103,7 +103,7 @@ cmd_new() {
   # ---------------------------------------------------------------- write
   mkdir -p "$work"/{recon,content,js,notes}
   {
-    printf '# kestrel scope — %s · edit with: kestrel scope %s\n' "$name" "$name"
+    printf '# percival scope — %s · edit with: percival scope %s\n' "$name" "$name"
     printf '[in]\n'
     [ -n "$in_hosts" ] && printf '%s\n' "$in_hosts"
     [ -n "$in_ips" ]   && printf '%s\n' "$in_ips"
@@ -124,7 +124,7 @@ cmd_new() {
     if [ -n "$rules" ]; then printf '\n'; printf '%s\n' "$rules"; fi
   } > "$work/notes/rules.md"
 
-  conf_write "$work/kestrel.conf" \
+  conf_write "$work/percival.conf" \
     PROGRAM "$name" PLATFORM "$platform" PROGRAM_URL "$url" \
     UA_SUFFIX "$ua_suffix" RATE "$rate" CURATED "$wordlist" \
     PORTSCAN_ALLOWED "$portscan" PROXY_DEFAULT "$proxy_default" PROXY_URL "$proxy_url" \
@@ -143,7 +143,7 @@ cmd_new() {
     dispatch recon "$name"
   else
     ui_blank
-    ui_next "kestrel recon $name"
+    ui_next "percival recon $name"
     ui_blank
   fi
 }
@@ -151,7 +151,7 @@ cmd_new() {
 # scope_rebuild — regenerate recon/* from <program>/scope (needs load_program first)
 scope_rebuild() {
   local out
-  out="$(python3 "$KESTREL_ROOT/lib/scope.py" build "$WORK")" || return 1
+  out="$(python3 "$PERCIVAL_ROOT/lib/scope.py" build "$WORK")" || return 1
   # shellcheck disable=SC2046
   eval "$(printf '%s\n' "$out" | sed 's/^\([A-Z0-9_]*\)=\(.*\)$/SC_\1=\x27\2\x27/')"
 }

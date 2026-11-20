@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel ports [program] — active port & service scan.
+# percival ports [program] — active port & service scan.
 #
 #   ACTIVE scan (naabu + nmap -sV, real packets), ONLY if the program allows port scanning
 #   (answered at onboarding). Targets are EXACTLY the in-scope IP ranges/IPs you declared at
@@ -7,7 +7,7 @@
 #   hostnames to IPs and scan those — a host resolving to some IP does not authorise scanning
 #   that IP. If the program declares no IP ranges, there is nothing to scan here.
 #
-#   Passive intel (Shodan InternetDB, zero packets) is a separate step:  kestrel shodan
+#   Passive intel (Shodan InternetDB, zero packets) is a separate step:  percival shodan
 #
 #   -n, --dry-run   preview the approved targets only, never scan
 #   -y, --yes       skip the confirmation prompt and scan
@@ -20,11 +20,11 @@ cmd_ports() {
   local prog="" assume_yes=0 dry_run=0 fresh=0 a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,17p' "$KESTREL_ROOT/cmd/ports.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -h|--help) sed -n '2,17p' "$PERCIVAL_ROOT/cmd/ports.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
       -y|--yes) assume_yes=1 ;;
       -n|--dry-run) dry_run=1 ;;
       --fresh) fresh=1 ;;
-      -*) ui_die "unknown option '$a'" "kestrel ports --help" ;;
+      -*) ui_die "unknown option '$a'" "percival ports --help" ;;
       *) prog="$a" ;;
     esac
   done
@@ -36,12 +36,12 @@ cmd_ports() {
   ui_section "active · naabu + nmap"
   if [ "${PORTSCAN_ALLOWED:-n}" != y ]; then
     ui_warn active "not allowed by the program — skipped"
-    ui_info passive "for passive port intel without traffic:  kestrel shodan $prog"
+    ui_info passive "for passive port intel without traffic:  percival shodan $prog"
     ui_blank; return 0
   fi
   if [ ! -s recon/ip_targets.txt ]; then
     ui_warn active "the program declares no in-scope IP ranges — nothing to port-scan"
-    ui_info passive "for passive port intel without traffic:  kestrel shodan $prog"
+    ui_info passive "for passive port intel without traffic:  percival shodan $prog"
     ui_blank; return 0
   fi
 
@@ -69,7 +69,7 @@ cmd_ports() {
     local _fresh=(); [ "$fresh" -eq 1 ] && _fresh=(--fresh)
     # PORTS left to bb-ports' RANGE_PORTS_DEFAULT (curated range ports) unless the user exported one.
     CIDR_FILE="$WORK/$scanfile" PORTS="${PORTS:-}" \
-      TOOLLOG="$WORK/notes/tools.log" bash "$KESTREL_ROOT/libexec/bb-ports.sh" --ranges "${_fresh[@]}" -y >> notes/ports.log 2>&1 || rc=1
+      TOOLLOG="$WORK/notes/tools.log" bash "$PERCIVAL_ROOT/libexec/bb-ports.sh" --ranges "${_fresh[@]}" -y >> notes/ports.log 2>&1 || rc=1
     ui_ok active "$(count_lines recon/ports/naabu.txt) open ports · $(count_lines recon/ports/services.txt) services on ${ntargets} declared target(s)"
     # FIREWALL GUARD: a host that answers on an improbable number of ports is a filtering
     # device (SYN-ACK / tcpwrapped on everything), not real services. Flag it so the count
@@ -84,7 +84,7 @@ cmd_ports() {
 
   ui_blank
   ui_ok done "$(ui_elapsed $(( $(date +%s) - t0 ))) · results in recon/ports/"
-  ui_next "kestrel shodan $prog   ·   kestrel triage $prog"
+  ui_next "percival shodan $prog   ·   percival triage $prog"
   ui_blank
 }
 

@@ -1,12 +1,12 @@
 # shellcheck shell=bash
-# kestrel backup — archive a program's whole folder (scope, recon data, db, report, notes) into one
+# percival backup — archive a program's whole folder (scope, recon data, db, report, notes) into one
 # timestamped .tar.gz. Offline: reads files on disk, sends no traffic, changes nothing in the program.
 #
 # The archive holds everything the program folder holds, including headers.txt (your identity /
 # tokens) and any verified secrets found, so it is written readable by you only (chmod 600). Treat it
 # like the folder itself. To restore:  tar -xzf <archive> -C <workspace>   (it will not ask first).
 #
-#   kestrel backup [program] [--out DIR] [--lite] [--all]
+#   percival backup [program] [--out DIR] [--lite] [--all]
 #     --out DIR   where to write the archive (default: <workspace>/_backups)
 #     --lite      leave out the screenshots (recon/snapshots): usually the bulk of the size
 #     --all       back up every program, one archive each
@@ -28,7 +28,7 @@ _backup_one() { # <program> <outdir> <lite>
   local ex=(); [ "$lite" = 1 ] && ex=(--exclude="$p/recon/snapshots")
 
   local t0; t0=$(date +%s)
-  ( umask 077; tar -C "$KESTREL_BASE" -czf "$file" ${ex[@]+"${ex[@]}"} "$p" ) \
+  ( umask 077; tar -C "$PERCIVAL_BASE" -czf "$file" ${ex[@]+"${ex[@]}"} "$p" ) \
     || { rm -f "$file"; ui_err "$p" "tar failed"; return 1; }
   # a backup you can't read back is not a backup
   tar -tzf "$file" >/dev/null 2>&1 || { ui_err "$p" "archive failed verification: $file"; return 1; }
@@ -43,25 +43,25 @@ cmd_backup() {
   local prog="" out="" lite=0 all=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      -h|--help) sed -n '2,12p' "$KESTREL_ROOT/cmd/backup.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -h|--help) sed -n '2,12p' "$PERCIVAL_ROOT/cmd/backup.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
       --out)   shift; out="${1:-}" ;;
       --out=*) out="${1#--out=}" ;;
       --lite)  lite=1 ;;
       --all)   all=1 ;;
-      -*) ui_die "unknown option '$1'" "kestrel backup --help" ;;
+      -*) ui_die "unknown option '$1'" "percival backup --help" ;;
       *)  prog="$1" ;;
     esac
     shift
   done
   have tar || ui_die "tar is required"
-  [ -n "$out" ] || out="$KESTREL_BASE/_backups"
+  [ -n "$out" ] || out="$PERCIVAL_BASE/_backups"
   mkdir -p "$out" || ui_die "cannot create $out"
   chmod 700 "$out" 2>/dev/null || true
 
   local progs=()
   if [ "$all" -eq 1 ]; then
     local p; while IFS= read -r p; do [ -n "$p" ] && progs+=("$p"); done < <(list_programs)
-    [ ${#progs[@]} -gt 0 ] || ui_die "no programs in $KESTREL_BASE" "kestrel new <program>"
+    [ ${#progs[@]} -gt 0 ] || ui_die "no programs in $PERCIVAL_BASE" "percival new <program>"
     ui_header backup "all programs"
   else
     progs=("$(resolve_program "$prog")")
@@ -73,7 +73,7 @@ cmd_backup() {
 
   ui_blank
   ui_warn secrets "the archive contains headers.txt and any secrets found — keep it private"
-  ui_next "restore: tar -xzf <archive> -C $KESTREL_BASE"
+  ui_next "restore: tar -xzf <archive> -C $PERCIVAL_BASE"
   ui_blank
   [ "$fails" -eq 0 ]
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""kestrel scope engine.
+"""percival scope engine.
 
 One human-readable scope file per program (<program>/scope):
 

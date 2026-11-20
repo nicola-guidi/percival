@@ -9,7 +9,7 @@ cidr_oos.txt) and writes, under <outdir>:
   caido-scope.json   {"name","allowlist":[...],"denylist":[...]}             (glob *example.com)
   caido-scope.txt    the allow/deny glob lists, plain, to paste into Caido's scope UI
 
-Scope comes straight from kestrel, so it is already in bounds: wildcards include their
+Scope comes straight from percival, so it is already in bounds: wildcards include their
 subdomains, standalone hosts are exact, out-of-scope hosts/keywords become exclusions. IP
 ranges are emitted where a host pattern can express them (single IPs, /24, /16, /8); anything
 else is listed in the summary so you can add it by hand. Prints KEY=VALUE counts on stdout.
@@ -160,7 +160,7 @@ def main(argv):
     os.makedirs(outdir, exist_ok=True)
     apex, hosts, oos, cidr_in, cidr_oos = build(work)
     if not (apex or hosts or cidr_in):
-        print("no scope to export — run: kestrel new / kestrel scope", file=sys.stderr)
+        print("no scope to export — run: percival new / percival scope", file=sys.stderr)
         return 3
 
     if which in ("burp", "both"):

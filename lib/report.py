@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""kestrel report — one self-contained HTML page per program, from whatever files exist.
+"""percival report — one self-contained HTML page per program, from whatever files exist.
 
     report.py <workdir> <out.html>
 
@@ -504,7 +504,7 @@ def section_js(w, r, nav):
 
 def load_conf(w):
     conf = {}
-    path = os.path.join(w, "kestrel.conf")
+    path = os.path.join(w, "percival.conf")
     for line in read_lines(path):
         if line.startswith("#") or "=" not in line:
             continue
@@ -519,8 +519,8 @@ def main(w, out):
     r = R()
     r += "<!doctype html><html lang=en><head><meta charset=utf-8>"
     r += "<meta name=viewport content='width=device-width,initial-scale=1'>"
-    r += f"<title>kestrel · {esc(prog)}</title><style>{CSS}</style></head><body><div class=wrap>"
-    r += f"<h1>kestrel — {esc(prog)}</h1>"
+    r += f"<title>percival · {esc(prog)}</title><style>{CSS}</style></head><body><div class=wrap>"
+    r += f"<h1>percival — {esc(prog)}</h1>"
     sub = conf.get("PLATFORM", "")
     url = conf.get("PROGRAM_URL", "")
     if url:
@@ -554,7 +554,7 @@ def main(w, out):
               f"<span id=qinfo></span><span class=navlinks>{links}</span></nav>")
         r += "<p class=nomatch id=nomatch>No rows match your filter.</p>"
     else:
-        r += "<p class=empty>Nothing to report yet — run kestrel recon first.</p>"
+        r += "<p class=empty>Nothing to report yet — run percival recon first.</p>"
     r.h += body.h
     r += FILTER_JS
     r += "</div></body></html>"

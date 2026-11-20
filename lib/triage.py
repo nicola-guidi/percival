@@ -21,8 +21,8 @@ Writes recon/triage/:
   admin_panels.txt    admin/login/console surfaces
   code_hosts.txt      git/CI hosts (gitlab/jenkins/...)
   exposed_services.txt dashboards/brokers (grafana/kibana/rabbitmq/...)
-  shodan_ports.txt    IP -> open ports (+ CVE count) from passive Shodan (kestrel shodan)
-  wayback_interesting.txt  archived URLs with a juicy extension (kestrel wayback)
+  shodan_ports.txt    IP -> open ports (+ CVE count) from passive Shodan (percival shodan)
+  wayback_interesting.txt  archived URLs with a juicy extension (percival wayback)
   catchall.txt        catch-all hosts to keep OUT of the leads (reference)
 """
 import glob
@@ -268,7 +268,7 @@ def main(w):
     counts["JS_UUIDS"] = write(os.path.join(out, "js_uuids.txt"), js_uuid)
     counts["JS_URLS"] = write(os.path.join(out, "js_urls.txt"), js_url)
     counts["PARAMS"] = write(os.path.join(out, "params.txt"), params_rows)
-    # archived (wayback) material, if 'kestrel wayback' has run — paths and params to fuzz with
+    # archived (wayback) material, if 'percival wayback' has run — paths and params to fuzz with
     wb_params = [l.split("\t", 1)[0] for l in lines(os.path.join(w, "recon/wayback/params.txt"))]
     wb_paths = []
     for u in lines(os.path.join(w, "recon/wayback/urls.txt")):
@@ -288,7 +288,7 @@ def main(w):
         grep_lines(live, r"gitlab|gitea|jenkins|bitbucket|(^|[^a-z])git\."))
     counts["EXPOSED_SERVICES"] = write(os.path.join(out, "exposed_services.txt"),
         grep_lines(live, r"kibana|grafana|elastic|activemq|rabbitmq|consul|phpmyadmin|solr|kong|minio|airflow"))
-    # passive Shodan findings (third-party IPs are already excluded by kestrel shodan)
+    # passive Shodan findings (third-party IPs are already excluded by percival shodan)
     shodan_rows = []
     for line in lines(os.path.join(w, "recon/ports/shodan.jsonl")):
         try:

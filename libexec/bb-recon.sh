@@ -138,7 +138,7 @@ if [ -n "$YWH" ]; then
   esac
 fi
 
-# kestrel: every extra custom header from the program's headers.txt (one "Name: value" per line)
+# percival: every extra custom header from the program's headers.txt (one "Name: value" per line)
 if [ -n "${HEADERS_FILE:-}" ] && [ -s "$HEADERS_FILE" ]; then
   while IFS= read -r _h || [ -n "$_h" ]; do
     case "$_h" in *:*) [ "$_h" = "$YWH" ] || HDRS+=(-H "$_h") ;; esac
@@ -147,8 +147,8 @@ fi
 # timeout for EVERY curl in the loops: a hanging host (WAF dropping us) won't block everything
 CT=(--connect-timeout 5 --max-time 12)
 
-# PROXY (set only when a kestrel command exports it): route TARGET traffic through an
-# intercepting proxy (Burp / Caido) so every request kestrel makes lands in its history/sitemap.
+# PROXY (set only when a percival command exports it): route TARGET traffic through an
+# intercepting proxy (Burp / Caido) so every request percival makes lands in its history/sitemap.
 # Deliberately scoped: only the invocations that hit the target are proxied. Non-target traffic
 # (crt.sh, subfinder's sources, DNS) stays direct, so the proxy never fills with OSINT noise.
 PX_HTTPX=(); PX_FFUF=(); PX_CURL=()
@@ -176,13 +176,13 @@ proxy_alive() {   # true if $PROXY's TCP port is accepting connections
 _proxied_stage() { case "$1" in live|catchall|quickhits|harvest|fuzz|api|js) return 0 ;; *) return 1 ;; esac; }
 # proxy_guard <stage>: stop clean if --proxy is on, this stage hits the target, and the proxy went
 # down. Called both per-stage in the full pipeline and once at the single-stage dispatcher, so
-# `kestrel recon` (which runs one stage per engine call) is covered too.
+# `percival recon` (which runs one stage per engine call) is covered too.
 proxy_guard() {
   [ -n "${PROXY:-}" ] || return 0
   _proxied_stage "$1" || return 0
   proxy_alive && return 0
   printf '\n   \033[1;31m✗\033[0m  proxy %s went down — stopping before '\''%s'\'' instead of probing blind.\n' "$PROXY" "$1" >&2
-  printf '      reopen Burp/Caido and re-run, or replay what you already have:  kestrel replay <program> --proxy\n' >&2
+  printf '      reopen Burp/Caido and re-run, or replay what you already have:  percival replay <program> --proxy\n' >&2
   exit 3
 }
 
@@ -324,7 +324,7 @@ stage_triage() {
   awk '
     BEGIN{
       NAME="(^|[.-])(api|apis|sts|idp|token|auth|oauth|sso|gateway|gw|graphql|rest|admin)([.-]|$)"
-      SERV="Azure-Application-Gateway|Microsoft-HTTPAPI|AmazonS3|Amazon CloudFront|CloudFront|Kong|Kestrel|Microsoft-IIS|openresty|gunicorn|Express"
+      SERV="Azure-Application-Gateway|Microsoft-HTTPAPI|AmazonS3|Amazon CloudFront|CloudFront|Kong|Percival|Microsoft-IIS|openresty|gunicorn|Express"
     }
     {
       hard = ($0 ~ /\[000\] |\[522\] |\[403\] \[\] \[19\]|accounts\.google\.com/)
@@ -961,7 +961,7 @@ usage() {
 }
 [ "$#" -ge 1 ] || usage
 stage="$1"; shift || true
-# single-stage runs (how `kestrel recon` drives the engine) skip run_stage, so guard here too.
+# single-stage runs (how `percival recon` drives the engine) skip run_stage, so guard here too.
 # For 'all', _proxied_stage is false, so this is a no-op and run_stage guards each stage instead.
 proxy_guard "$stage"
 case "$stage" in

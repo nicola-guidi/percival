@@ -1,16 +1,16 @@
 # shellcheck shell=bash
-# kestrel doctor [--install] — is this machine ready? Sends NO traffic to any target.
+# percival doctor [--install] — is this machine ready? Sends NO traffic to any target.
 #
 # --install: installs what is missing, after showing the list and asking once.
-#   1. Go >= 1.21 is a prerequisite you install by hand: kestrel never installs Go.
-#      (Go >= 1.21 fetches the newer toolchain the tools need by itself: kestrel forces
+#   1. Go >= 1.21 is a prerequisite you install by hand: percival never installs Go.
+#      (Go >= 1.21 fetches the newer toolchain the tools need by itself: percival forces
 #       GOTOOLCHAIN=auto, because Debian's packaged Go defaults to 'local'.)
 #   2. Go tools (ProjectDiscovery + ffuf + gitleaks) → go install, straight into ~/.local/bin
 #   3. system packages (nmap, jq, gh, …) → apt, ONLY on Debian-based systems;
-#      anywhere else kestrel prints an alert to install them by hand.
+#      anywhere else percival prints an alert to install them by hand.
 
 GO_MIN_MINOR=21
-KESTREL_BIN_DIR="${KESTREL_BIN_DIR:-$HOME/.local/bin}"
+PERCIVAL_BIN_DIR="${PERCIVAL_BIN_DIR:-$HOME/.local/bin}"
 
 # name | group | level (core|opt) | how: go:<module> · apt:<pkg> · script:<id>
 DOCTOR_TOOLS=(
@@ -36,7 +36,7 @@ DOCTOR_GROUPS=(core recon ports secrets osint snapshot)
 
 # shodan_probe → HTTP code of one InternetDB lookup of a neutral public IP (never a target)
 shodan_probe() {
-  curl -s -o /dev/null -w '%{http_code}' --max-time 8 -A kestrel https://internetdb.shodan.io/8.8.8.8 2>/dev/null || true
+  curl -s -o /dev/null -w '%{http_code}' --max-time 8 -A percival https://internetdb.shodan.io/8.8.8.8 2>/dev/null || true
 }
 
 is_debian() { [ -f /etc/debian_version ] && have apt-get; }
@@ -50,7 +50,7 @@ go_minor() {
 # tool_ok <name> → present AND the right tool (Kali's 'httpx' can be the python client)
 tool_ok() {
   local t="$1"
-  # chromium is needed only for 'kestrel snapshot' and ships under several binary names
+  # chromium is needed only for 'percival snapshot' and ships under several binary names
   # (chromium, chromium-browser, google-chrome): any of them counts.
   [ "$t" = chromium ] && { chrome_ok; return; }
   have "$t" || return 1
@@ -74,7 +74,7 @@ tool_hint() {
   case "$how" in
     go:*)     printf 'go install %s' "${how#go:}" ;;
     apt:*)    is_debian && printf 'sudo apt install %s' "${how#apt:}" || printf 'install %s with your package manager' "$name" ;;
-    script:trufflehog) printf 'curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b %s' "$KESTREL_BIN_DIR" ;;
+    script:trufflehog) printf 'curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b %s' "$PERCIVAL_BIN_DIR" ;;
   esac
 }
 
@@ -82,9 +82,9 @@ cmd_doctor() {
   local install=0 a
   for a in "$@"; do
     case "$a" in
-      -h|--help) printf 'usage: kestrel doctor [--install]\n\n  Checks tools, wordlist and engine integrity. --install installs what is missing.\n' >&2; return 0 ;;
+      -h|--help) printf 'usage: percival doctor [--install]\n\n  Checks tools, wordlist and engine integrity. --install installs what is missing.\n' >&2; return 0 ;;
       --install) install=1 ;;
-      *) ui_die "unknown option '$a'" "kestrel doctor --help" ;;
+      *) ui_die "unknown option '$a'" "percival doctor --help" ;;
     esac
   done
 
@@ -134,20 +134,20 @@ cmd_doctor() {
   esac
 
   case ":$PATH:" in
-    *":$KESTREL_BIN_DIR:"*) : ;;
-    *) ui_warn PATH "$KESTREL_BIN_DIR is not in \$PATH — tools installed there won't be found" ;;
+    *":$PERCIVAL_BIN_DIR:"*) : ;;
+    *) ui_warn PATH "$PERCIVAL_BIN_DIR is not in \$PATH — tools installed there won't be found" ;;
   esac
 
-  if [ -d "$KESTREL_BASE" ] && [ -w "$KESTREL_BASE" ]; then
-    ui_ok workspace "$KESTREL_BASE ($(list_programs | grep -c . || true) programs)"
-  elif [ -d "$KESTREL_BASE" ]; then ui_err workspace "$KESTREL_BASE is not writable"
-  else ui_info workspace "$KESTREL_BASE (created on first kestrel new)"; fi
+  if [ -d "$PERCIVAL_BASE" ] && [ -w "$PERCIVAL_BASE" ]; then
+    ui_ok workspace "$PERCIVAL_BASE ($(list_programs | grep -c . || true) programs)"
+  elif [ -d "$PERCIVAL_BASE" ]; then ui_err workspace "$PERCIVAL_BASE is not writable"
+  else ui_info workspace "$PERCIVAL_BASE (created on first percival new)"; fi
 
-  local wl="$KESTREL_ROOT/wordlists/curated.txt"
+  local wl="$PERCIVAL_ROOT/wordlists/curated.txt"
   if [ -s "$wl" ]; then ui_ok wordlist "curated.txt ($(count_lines "$wl") entries)"
   else ui_err wordlist "$wl missing"; fi
 
-  if bash "$KESTREL_ROOT/libexec/bb-selftest.sh" "$KESTREL_ROOT/libexec/bb-recon.sh" >/dev/null 2>&1; then
+  if bash "$PERCIVAL_ROOT/libexec/bb-selftest.sh" "$PERCIVAL_ROOT/libexec/bb-recon.sh" >/dev/null 2>&1; then
     ui_ok integrity "engine selftest passed"
   else
     ui_err integrity "engine selftest failed" ; blocked+=(engine)
@@ -168,7 +168,7 @@ cmd_doctor() {
     ui_section "to install"
     for t in "${missing[@]}"; do printf '    %-11s %s\n' "${t%%|*}" "$(tool_note "${t%%|*}")$(tool_hint "$t")" >&2; done
     ui_blank
-    ui_next "kestrel doctor --install"
+    ui_next "percival doctor --install"
     ui_blank
     [ ${#blocked[@]} -eq 0 ]; return
   fi
@@ -197,14 +197,14 @@ doctor_install() {
     if [ -z "$gm" ]; then ui_err go "Go is not installed"
     else ui_err go "Go 1.$gm is too old (need ≥ 1.$GO_MIN_MINOR)"; fi
     ui_dim "Install Go by hand (https://go.dev/dl/ — or 'sudo apt install golang-go' on Kali/Ubuntu 24.04+),"
-    ui_dim "then run kestrel doctor --install again."
+    ui_dim "then run percival doctor --install again."
     ui_blank; return 1
   fi
 
   ui_section "install plan"
   [ ${#apt_items[@]} -gt 0 ]    && ui_info apt "sudo apt-get install -y ${apt_items[*]}"
-  for t in "${go_items[@]}"; do ui_info go "${t%%|*}  → $KESTREL_BIN_DIR"; done
-  for t in "${script_items[@]}"; do ui_info script "$t  → $KESTREL_BIN_DIR (official install script)"; done
+  for t in "${go_items[@]}"; do ui_info go "${t%%|*}  → $PERCIVAL_BIN_DIR"; done
+  for t in "${script_items[@]}"; do ui_info script "$t  → $PERCIVAL_BIN_DIR (official install script)"; done
   for t in "${manual[@]}"; do ui_warn manual "${t%%|*} not installed: install it by hand"; done
   if [ ${#apt_items[@]} -eq 0 ] && [ ${#go_items[@]} -eq 0 ] && [ ${#script_items[@]} -eq 0 ]; then
     ui_blank; return 1
@@ -213,8 +213,8 @@ doctor_install() {
   ui_yesno 'Proceed?' y || { ui_info install "cancelled"; ui_blank; return 1; }
   ui_blank
 
-  mkdir -p "$KESTREL_BIN_DIR"
-  local log="$KESTREL_CONFIG_DIR/install.log"; mkdir -p "$KESTREL_CONFIG_DIR"; : > "$log"
+  mkdir -p "$PERCIVAL_BIN_DIR"
+  local log="$PERCIVAL_CONFIG_DIR/install.log"; mkdir -p "$PERCIVAL_CONFIG_DIR"; : > "$log"
 
   if [ ${#apt_items[@]} -gt 0 ]; then
     if sudo apt-get update >>"$log" 2>&1 && sudo apt-get install -y "${apt_items[@]}" >>"$log" 2>&1; then
@@ -224,7 +224,7 @@ doctor_install() {
 
   for t in "${go_items[@]}"; do
     name="${t%%|*}"
-    if GOTOOLCHAIN=auto GOBIN="$KESTREL_BIN_DIR" CGO_ENABLED=1 go install -v "${t#*|}" >>"$log" 2>&1; then
+    if GOTOOLCHAIN=auto GOBIN="$PERCIVAL_BIN_DIR" CGO_ENABLED=1 go install -v "${t#*|}" >>"$log" 2>&1; then
       ui_ok "$name" "installed"
     else ui_err "$name" "go install failed — see $log"; fi
   done
@@ -233,22 +233,22 @@ doctor_install() {
     case "$t" in
       trufflehog)
         if curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
-             | sh -s -- -b "$KESTREL_BIN_DIR" >>"$log" 2>&1; then ui_ok trufflehog installed
+             | sh -s -- -b "$PERCIVAL_BIN_DIR" >>"$log" 2>&1; then ui_ok trufflehog installed
         else ui_err trufflehog "install script failed — see $log"; fi ;;
     esac
   done
 
   # make sure the bin dir is on PATH
   case ":$PATH:" in
-    *":$KESTREL_BIN_DIR:"*) : ;;
+    *":$PERCIVAL_BIN_DIR:"*) : ;;
     *)
       local rc="$HOME/.bashrc"; case "${SHELL:-}" in *zsh) rc="$HOME/.zshrc" ;; esac
-      ui_warn PATH "$KESTREL_BIN_DIR is not in \$PATH"
+      ui_warn PATH "$PERCIVAL_BIN_DIR is not in \$PATH"
       if ui_yesno "Add it to $rc?" y; then
-        printf '\n# kestrel tools\nexport PATH="%s:$PATH"\n' "$KESTREL_BIN_DIR" >> "$rc"
+        printf '\n# percival tools\nexport PATH="%s:$PATH"\n' "$PERCIVAL_BIN_DIR" >> "$rc"
         ui_ok PATH "added — open a new terminal (or: source $rc)"
       fi
-      export PATH="$KESTREL_BIN_DIR:$PATH" ;;
+      export PATH="$PERCIVAL_BIN_DIR:$PATH" ;;
   esac
 
   # final check: every installed tool must answer from the shell
@@ -260,7 +260,7 @@ doctor_install() {
     else ui_err "$name" "still missing"; bad=1; fi
   done
   ui_blank
-  [ "$bad" -eq 0 ] && ui_next "kestrel new <program>" || ui_next "check $log"
+  [ "$bad" -eq 0 ] && ui_next "percival new <program>" || ui_next "check $log"
   ui_blank
   return "$bad"
 }

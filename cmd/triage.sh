@@ -1,30 +1,30 @@
 # shellcheck shell=bash
-# kestrel triage [program] — offline triage of the recon catch into leads.
+# percival triage [program] — offline triage of the recon catch into leads.
 #
 #   Reads only what is already on disk (recon/, content/, js/) and sorts it into lead files
 #   under recon/triage/. ZERO network: not a single request is sent. Turning a path found in a
 #   JS bundle into a confirmed endpoint stays a manual, minimal-touch step.
 #
-#   Everything it finds also lands in the report (kestrel report), under "Triage".
+#   Everything it finds also lands in the report (percival report), under "Triage".
 
 cmd_triage() {
   local prog="" a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,9p' "$KESTREL_ROOT/cmd/triage.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
-      -*) ui_die "unknown option '$a'" "kestrel triage --help" ;;
+      -h|--help) sed -n '2,9p' "$PERCIVAL_ROOT/cmd/triage.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -*) ui_die "unknown option '$a'" "percival triage --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
   ui_header triage "$prog"
-  have python3 || ui_die "python3 is required" "kestrel doctor --install"
-  [ -s recon/surface_ok.txt ] || [ -d content ] || ui_die "nothing to triage yet" "kestrel recon $prog"
+  have python3 || ui_die "python3 is required" "percival doctor --install"
+  [ -s recon/surface_ok.txt ] || [ -d content ] || ui_die "nothing to triage yet" "percival recon $prog"
 
   local t0; t0=$(date +%s)
   ui_running triage "parsing the catch (offline, no traffic)…"
-  local out; out="$(python3 "$KESTREL_ROOT/lib/triage.py" "$WORK" 2>/dev/null)" || ui_die "triage failed"
+  local out; out="$(python3 "$PERCIVAL_ROOT/lib/triage.py" "$WORK" 2>/dev/null)" || ui_die "triage failed"
   local T_API_OPEN T_API_GATED T_API_PATHS T_FUZZ_REAL T_FUZZ_JUICY T_JS_ENDPOINTS \
         T_JS_SECRETS T_JS_UUIDS T_JS_URLS T_PARAMS T_ROBOTS_NONSTD T_ADMIN_PANELS T_CODE_HOSTS \
         T_EXPOSED_SERVICES T_SHODAN T_WAYBACK T_CATCHALL
@@ -55,7 +55,7 @@ cmd_triage() {
 
   ui_blank
   ui_ok done "$(ui_elapsed $(( $(date +%s) - t0 ))) · recon/triage/"
-  ui_next "kestrel report $prog"
+  ui_next "percival report $prog"
   ui_blank
 }
 

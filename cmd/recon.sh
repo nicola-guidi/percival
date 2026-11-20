@@ -1,10 +1,10 @@
 # shellcheck shell=bash
-# kestrel recon [program] [stage] [--fresh] [--from <stage>] [--skip a,b]
+# percival recon [program] [stage] [--fresh] [--from <stage>] [--skip a,b]
 #
 # Runs the recon pipeline stage by stage. On screen: ONE line per stage with the numbers.
 # Everything else (per-host rows, tool output) goes to notes/recon.log and the report.
 #
-# Resumes automatically: if a run was interrupted, the next 'kestrel recon' continues
+# Resumes automatically: if a run was interrupted, the next 'percival recon' continues
 # from the first stage not completed. --fresh starts over.
 # At the end: scope verify + a short status, then the report path.
 
@@ -12,7 +12,7 @@ RECON_STAGES=(enum live triage catchall quickhits harvest fuzz summary api js)
 
 cmd_recon_help() {
   cat >&2 <<'EOF'
-usage: kestrel recon [program] [stage] [options]
+usage: percival recon [program] [stage] [options]
 
   (no stage)        full pipeline, resuming an interrupted run
   <stage>           run a single stage: enum live triage catchall quickhits
@@ -66,11 +66,11 @@ cmd_recon() {
       --proxy)      proxy_want=on ;;
       --proxy=*)    proxy_want=on; PROXY_URL="${1#--proxy=}" ;;
       --no-proxy)   proxy_want=off ;;
-      -*)        ui_die "unknown option '$1'" "kestrel recon --help" ;;
+      -*)        ui_die "unknown option '$1'" "percival recon --help" ;;
       *)
         if [[ " ${RECON_STAGES[*]} all " == *" $1 "* ]]; then only="$1"
         elif [ -z "$prog" ]; then prog="$1"
-        else ui_die "unknown stage '$1'" "kestrel recon --help"; fi ;;
+        else ui_die "unknown stage '$1'" "percival recon --help"; fi ;;
     esac
     shift
   done
@@ -84,7 +84,7 @@ cmd_recon() {
   # ---------------------------------------------------------------- pre-flight
   local t miss=()
   for t in curl jq httpx; do tool_ok "$t" || miss+=("$t"); done
-  [ ${#miss[@]} -eq 0 ] || ui_die "missing: ${miss[*]}" "kestrel doctor --install"
+  [ ${#miss[@]} -eq 0 ] || ui_die "missing: ${miss[*]}" "percival doctor --install"
   [ -s recon/apex.txt ] && ! tool_ok subfinder && ui_warn enum "subfinder missing: only crt.sh will be used"
   if [ -f scope ]; then scope_rebuild >/dev/null 2>&1 || true; fi
   ui_info scope "$(count_lines recon/apex.txt) wildcard · $(count_lines recon/hosts.txt) host · $(count_lines recon/oos.txt) excluded"
@@ -128,15 +128,15 @@ cmd_recon() {
     ts=$(date +%s); rc=0
     {
       printf '\n===== %s · %s =====\n' "$s" "$(date '+%F %T')"
-      TOOLLOG="$WORK/notes/tools.log" bash "$KESTREL_ROOT/libexec/bb-recon.sh" "$s"
+      TOOLLOG="$WORK/notes/tools.log" bash "$PERCIVAL_ROOT/libexec/bb-recon.sh" "$s"
     } >> notes/recon.log 2>&1 || rc=$?
     dur="$(ui_elapsed $(( $(date +%s) - ts )))"
     # rc 3 = the engine's proxy guard: the proxy went down. Stop here, do NOT mark the stage done
     # (so a re-run resumes from it) and do not carry on into stages that would probe blind.
     if [ "$rc" -eq 3 ] && [ -n "${PROXY:-}" ]; then
       ui_err stopped "proxy ${PROXY} went down before '$s' — nothing was sent to the target for it"
-      ui_info next "reopen Burp/Caido and re-run: kestrel recon $prog   (resumes from '$s')"
-      ui_info next "or send what is already found through the proxy: kestrel replay $prog --proxy"
+      ui_info next "reopen Burp/Caido and re-run: percival recon $prog   (resumes from '$s')"
+      ui_info next "or send what is already found through the proxy: percival replay $prog --proxy"
       ui_blank; return 1
     fi
     if [ "$rc" -ne 0 ]; then
@@ -154,7 +154,7 @@ cmd_recon() {
     fi
   done
 
-  if [ -n "$only" ]; then ui_blank; ui_next "kestrel status $prog"; ui_blank; return 0; fi
+  if [ -n "$only" ]; then ui_blank; ui_next "percival status $prog"; ui_blank; return 0; fi
 
   local total=$(( $(date +%s) - t0 ))
   printf '%s %ss %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$total" "${#stages[@]}" >> notes/runs.log
@@ -166,15 +166,15 @@ cmd_recon() {
   recon_leads_line
   ui_blank
   ui_ok done "$(ui_elapsed "$total")"
-  ui_next "kestrel status $prog   ·   kestrel report $prog"
+  ui_next "percival status $prog   ·   percival report $prog"
   ui_blank
-  notify "kestrel recon $prog done in $(ui_elapsed "$total") · $(recon_leads_count) leads" 2>/dev/null || true
+  notify "percival recon $prog done in $(ui_elapsed "$total") · $(recon_leads_count) leads" 2>/dev/null || true
 }
 
 # verify in one line (exit code of the engine = number of problems)
 recon_verify_line() {
   local n=0
-  bash "$KESTREL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
+  bash "$PERCIVAL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
   if [ "$n" -eq 0 ]; then ui_ok verify "nothing out of scope touched · in-scope covered"
   else ui_err verify "$n problem(s) · notes/verify.log"; fi
 }
@@ -189,7 +189,7 @@ recon_leads_count() {
 
 recon_leads_line() {
   local n; n="$(recon_leads_count)"
-  if [ "$n" -gt 0 ]; then ui_ok leads "$n to look at (kestrel status for the list)"
+  if [ "$n" -gt 0 ]; then ui_ok leads "$n to look at (percival status for the list)"
   else ui_info leads "no automatic leads"; fi
 }
 

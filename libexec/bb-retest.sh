@@ -90,13 +90,13 @@ if [ -n "$YWH" ]; then
     *)   warn "ignoring malformed identification '$YWH' (not a 'Name: value' header)." ;;
   esac
 fi
-# kestrel: every extra custom header from the program's headers.txt (one "Name: value" per line)
+# percival: every extra custom header from the program's headers.txt (one "Name: value" per line)
 if [ -n "${HEADERS_FILE:-}" ] && [ -s "$HEADERS_FILE" ]; then
   while IFS= read -r _h || [ -n "$_h" ]; do
     case "$_h" in *:*) [ "$_h" = "$YWH" ] || HDRS+=(-H "$_h") ;; esac
   done < "$HEADERS_FILE"
 fi
-# PROXY (set by the kestrel command): route the newcomer probe through Burp/Caido.
+# PROXY (set by the percival command): route the newcomer probe through Burp/Caido.
 PX_HTTPX=(); [ -n "${PROXY:-}" ] && PX_HTTPX=(-proxy "$PROXY")
 
 BASE="recon/retest/baseline_subs.txt"              # the known universe of in-scope subs

@@ -206,7 +206,7 @@ def main(work, max_ips):
             print(f"\r\033[K   shodan {n}/{total} · known {known}", end="", file=sys.stderr, flush=True)
             queried += 1
             try:
-                req = urllib.request.Request(API + ip, headers={"User-Agent": "kestrel"})
+                req = urllib.request.Request(API + ip, headers={"User-Agent": "percival"})
                 with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
                     rec = json.load(r)
             except urllib.error.HTTPError as e:

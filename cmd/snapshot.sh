@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel snapshot [program] — a visual preview of the pages that matter. An EXTRA, not a pipeline
+# percival snapshot [program] — a visual preview of the pages that matter. An EXTRA, not a pipeline
 # stage: it screenshots pages (headless browser via httpx -screenshot) into a gallery you can skim
 # to see at a glance what each page is — login, admin panel, default page, error, real app. Run it
 # whenever you want "a bit more info"; it feeds nothing else (not the report, not triage, not the
@@ -10,10 +10,10 @@
 # interesting (admin panels, open APIs, exposed services, juicy fuzz hits), deduped to one
 # screenshot per host so the gallery stays small.
 #
-# In scope only (the URLs come from kestrel's own scoped recon/triage). Active traffic (it loads the
+# In scope only (the URLs come from percival's own scoped recon/triage). Active traffic (it loads the
 # pages), so it honours the program's rate and identity, and is proxy-aware.
 #
-#   kestrel snapshot [program] [--leads] [--surface] [--proxy[=url]] [--no-proxy]
+#   percival snapshot [program] [--leads] [--surface] [--proxy[=url]] [--no-proxy]
 #     --leads     screenshot only the triage-flagged hosts (one shot per host), not every live host
 #     --surface   screenshot the wider surface (recon/surface_ok.txt) instead
 
@@ -21,22 +21,22 @@ cmd_snapshot() {
   local prog="" proxy_want=auto src=live a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,18p' "$KESTREL_ROOT/cmd/snapshot.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -h|--help) sed -n '2,18p' "$PERCIVAL_ROOT/cmd/snapshot.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
       --leads)    src=leads ;;
       --live)     src=live ;;
       --surface)  src=surface ;;
       --proxy)    proxy_want=on ;;
       --proxy=*)  proxy_want=on; PROXY_URL="${a#--proxy=}" ;;
       --no-proxy) proxy_want=off ;;
-      -*) ui_die "unknown option '$a'" "kestrel snapshot --help" ;;
+      -*) ui_die "unknown option '$a'" "percival snapshot --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
   ui_header snapshot "$prog"
-  tool_ok httpx || ui_die "httpx missing" "kestrel doctor --install"
-  have python3 || ui_die "python3 is required" "kestrel doctor --install"
+  tool_ok httpx || ui_die "httpx missing" "percival doctor --install"
+  have python3 || ui_die "python3 is required" "percival doctor --install"
 
   # ---- gather the URLs to screenshot, by source, dedup
   local urls; urls="$(mktemp)"
@@ -53,14 +53,14 @@ cmd_snapshot() {
       if [ ! -s "$urls" ]; then
         rm -f "$urls"
         ui_warn empty "no triage leads yet to screenshot"
-        ui_next "kestrel triage $prog   (or shoot every live host: kestrel snapshot $prog)"
+        ui_next "percival triage $prog   (or shoot every live host: percival snapshot $prog)"
         ui_blank; return 0
       fi ;;
     live)
-      [ -s recon/live.txt ] || ui_die "no live hosts yet to screenshot" "kestrel recon $prog"
+      [ -s recon/live.txt ] || ui_die "no live hosts yet to screenshot" "percival recon $prog"
       awk '{print $1}' recon/live.txt | grep -E '^https?://' | sort -u > "$urls" ;;
     surface)
-      [ -s recon/surface_ok.txt ] || ui_die "no surface yet to screenshot" "kestrel recon $prog"
+      [ -s recon/surface_ok.txt ] || ui_die "no surface yet to screenshot" "percival recon $prog"
       awk '{print $1}' recon/surface_ok.txt | grep -E '^https?://' | sort -u > "$urls" ;;
   esac
   local n; n="$(count_lines "$urls")"
@@ -101,7 +101,7 @@ cmd_snapshot() {
   rm -f "$urls"
 
   # build the gallery (index.html) from the JSONL, or from the PNGs on disk as a fallback
-  local g; g="$(python3 "$KESTREL_ROOT/lib/gallery.py" "$out_dir" "$prog" 2>>"$WORK/notes/tools.log")" || true
+  local g; g="$(python3 "$PERCIVAL_ROOT/lib/gallery.py" "$out_dir" "$prog" 2>>"$WORK/notes/tools.log")" || true
   local SN_SHOTS SN_INDEX
   eval "$(printf '%s\n' "$g" | sed 's/^\([A-Z0-9_]*\)=\(.*\)$/SN_\1=\x27\2\x27/')"
 

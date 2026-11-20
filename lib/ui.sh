@@ -1,14 +1,14 @@
 # shellcheck shell=bash
-# lib/ui.sh — the ONE output style for every kestrel command.
+# lib/ui.sh — the ONE output style for every percival command.
 #
-#   kestrel <cmd> · <program>          ← ui_header, once
+#   percival <cmd> · <program>          ← ui_header, once
 #
 #   section                            ← ui_section (dim title)
 #     ✓ label       message            ← ui_ok
 #     ⚠ label       message            ← ui_warn
 #     ✗ label       message            ← ui_err
 #     · label       message            ← ui_info  (neutral)
-#     › next        kestrel ...        ← ui_next
+#     › next        percival ...        ← ui_next
 #
 # Rules: 2-space indent, labels padded to 12, colour ONLY on the marker,
 # everything on stderr (stdout stays free for data), plain when not a TTY
@@ -36,16 +36,17 @@ _ui_row() {
   fi
 }
 
-ui_header()  { printf '\n%skestrel %s%s%s\n\n' "$_C_BOLD" "$1" "$_C_OFF" "${2:+ · $2}" >&2; }
+ui_header()  { printf '\n%spercival %s%s%s\n\n' "$_C_BOLD" "$1" "$_C_OFF" "${2:+ · $2}" >&2; }
 # ui_banner [version] — the ASCII logo, for help / version only (not every command)
 ui_banner() {
   printf '\n%s%s' "$_C_NEXT" "$_C_BOLD" >&2
   cat >&2 <<'EOF'
-   _                 _                  _
-  | | __  ___   ___ | |_   _ __   ___  | |
-  | |/ / / _ \ / __|| __| | '__| / _ \ | |
-  |   < |  __/ \__ \| |_  | |   |  __/ | |
-  |_|\_\ \___| |___/ \__| |_|    \___| |_|
+                            _                _
+   _ __    ___  _ __   ___ (_)__   __  __ _ | |
+  | '_ \  / _ \| '__| / __|| |\ \ / / / _` || |
+  | |_) ||  __/| |   | (__ | | \ V / | (_| || |
+  | .__/  \___||_|    \___||_|  \_/   \__,_||_|
+  |_|
 EOF
   printf '%s  %sbug-bounty recon framework%s%s\n\n' "$_C_OFF" "$_C_DIM" "${1:+ · v$1}" "$_C_OFF" >&2
 }

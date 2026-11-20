@@ -60,7 +60,7 @@ def path_of(url):
 def fetch_cdx(q):
     url = f"{CDX}?{urllib.parse.urlencode(q)}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "kestrel"})
+        req = urllib.request.Request(url, headers={"User-Agent": "percival"})
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
             return r.read().decode("utf-8", "replace").splitlines()
     except Exception:          # network/HTTP/parse — archives are best-effort

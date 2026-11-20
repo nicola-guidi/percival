@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel secrets [program] — GitHub leak hunting. Nothing to type: the GitHub org is derived
+# percival secrets [program] — GitHub leak hunting. Nothing to type: the GitHub org is derived
 # from the scope domains and accepted ONLY if its GitHub profile (website / email) matches a
 # scope domain. Unconfirmed lookalikes are listed, never scanned.
 # Engine: libexec/bb-secrets.sh (discover → scan → report), output in notes/secrets.log.
@@ -29,8 +29,8 @@ cmd_secrets() {
   local prog="" a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,5p' "$KESTREL_ROOT/cmd/secrets.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
-      -*) ui_die "unknown option '$a'" "kestrel secrets --help" ;;
+      -h|--help) sed -n '2,5p' "$PERCIVAL_ROOT/cmd/secrets.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -*) ui_die "unknown option '$a'" "percival secrets --help" ;;
       *) prog="$a" ;;
     esac
   done
@@ -39,7 +39,7 @@ cmd_secrets() {
   ui_header secrets "$prog"
   local t miss=()
   for t in gh git jq trufflehog; do tool_ok "$t" || miss+=("$t"); done
-  [ ${#miss[@]} -eq 0 ] || ui_die "missing: ${miss[*]}" "kestrel doctor --install"
+  [ ${#miss[@]} -eq 0 ] || ui_die "missing: ${miss[*]}" "percival doctor --install"
   gh auth status >/dev/null 2>&1 || ui_die "gh is not authenticated" "gh auth login"
 
   # ---------------------------------------------------------------- 1 · find the org
@@ -73,7 +73,7 @@ cmd_secrets() {
     {
       printf '\n===== secrets %s · %s =====\n' "$org" "$(date '+%F %T')"
       ORG="$org" SECDIR="$dir" EMAIL_DOMAINS="$email_domains" TOOLLOG="$WORK/notes/tools.log" \
-        bash "$KESTREL_ROOT/libexec/bb-secrets.sh" all
+        bash "$PERCIVAL_ROOT/libexec/bb-secrets.sh" all
     } >> notes/secrets.log 2>&1 || rc=$?
     local nr nf nl
     nr="$(count_lines "$dir/repo_urls.txt")"; nf="$(count_lines "$dir/th_all.jsonl")"; nl="$(count_lines "$dir/code_search.txt")"
@@ -87,6 +87,6 @@ cmd_secrets() {
 
   ui_blank
   ui_ok done "$(ui_elapsed $(( $(date +%s) - t0 ))) · secrets are masked in the reports"
-  ui_next "kestrel status $prog"
+  ui_next "percival status $prog"
   ui_blank
 }

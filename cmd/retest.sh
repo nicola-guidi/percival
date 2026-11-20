@@ -1,25 +1,25 @@
 # shellcheck shell=bash
-# kestrel retest [program] [--shallow] — only what is NEW since the last scan.
+# percival retest [program] [--shallow] — only what is NEW since the last scan.
 # Raw data per run in recon/retest/<stamp>/ · engine output in notes/retest.log.
 
 cmd_retest() {
   local prog="" args=() a proxy_want=auto
   for a in "$@"; do
     case "$a" in
-      -h|--help) printf 'usage: kestrel retest [program] [--shallow] [--proxy[=url]] [--no-proxy]\n\n  New subdomains since the last scan, which are live, then the pipeline on them.\n  --shallow   stop at the new live hosts\n  --proxy     route the newcomer probe + pipeline through Burp/Caido\n  --no-proxy  do not proxy this run\n' >&2; return 0 ;;
+      -h|--help) printf 'usage: percival retest [program] [--shallow] [--proxy[=url]] [--no-proxy]\n\n  New subdomains since the last scan, which are live, then the pipeline on them.\n  --shallow   stop at the new live hosts\n  --proxy     route the newcomer probe + pipeline through Burp/Caido\n  --no-proxy  do not proxy this run\n' >&2; return 0 ;;
       --shallow|--no-deep) args+=(--shallow) ;;
       --proxy)    proxy_want=on ;;
       --proxy=*)  proxy_want=on; PROXY_URL="${a#--proxy=}" ;;
       --no-proxy) proxy_want=off ;;
-      -*) ui_die "unknown option '$a'" "kestrel retest --help" ;;
+      -*) ui_die "unknown option '$a'" "percival retest --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
   ui_header retest "$prog"
-  tool_ok httpx || ui_die "httpx missing" "kestrel doctor --install"
-  [ -s recon/apex.txt ] || ui_die "no wildcard in scope: nothing to re-enumerate" "kestrel recon $prog"
+  tool_ok httpx || ui_die "httpx missing" "percival doctor --install"
+  [ -s recon/apex.txt ] || ui_die "no wildcard in scope: nothing to re-enumerate" "percival recon $prog"
   proxy_for_run "$proxy_want"
 
   if [ -s notes/runs.log ]; then
@@ -32,7 +32,7 @@ cmd_retest() {
   ui_running retest "enumerating and comparing…"
   {
     printf '\n===== retest · %s =====\n' "$(date '+%F %T')"
-    TOOLLOG="$WORK/notes/tools.log" bash "$KESTREL_ROOT/libexec/bb-retest.sh" "${args[@]}"
+    TOOLLOG="$WORK/notes/tools.log" bash "$PERCIVAL_ROOT/libexec/bb-retest.sh" "${args[@]}"
   } >> notes/retest.log 2>&1 || rc=$?
 
   local rdir; rdir="$(find recon/retest -mindepth 1 -maxdepth 1 -type d -name '2*' 2>/dev/null | sort | tail -n1)"
@@ -67,7 +67,7 @@ cmd_retest() {
   [ "$rc" -ne 0 ] && ui_warn engine "finished with issues · notes/retest.log"
   ui_blank
   ui_ok done "$(ui_elapsed $(( $(date +%s) - t0 ))) · $rdir/"
-  ui_next "kestrel status $prog"
+  ui_next "percival status $prog"
   ui_blank
-  notify "kestrel retest $prog done · $rdir" 2>/dev/null || true
+  notify "percival retest $prog done · $rdir" 2>/dev/null || true
 }

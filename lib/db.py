@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""kestrel's workspace DB — a centralised, structured, queryable store of everything kestrel
+"""percival's workspace DB — a centralised, structured, queryable store of everything percival
 collected on a target, in the spirit of Metasploit's db (hosts / services / vulns), but built
-from kestrel's richer data (hosts with status, services, ports, CVEs, endpoints, and the triage
+from percival's richer data (hosts with status, services, ports, CVEs, endpoints, and the triage
 leads: secrets, params, admin panels, exposed services, ...).
 
 The flat files under each program folder stay the source of truth; this db is a DERIVED store,
-rebuilt any time by reading them (kestrel db sync). One SQLite file PER PROGRAM,
-<program_dir>/kestrel.db, inspectable with the `sqlite3` CLI or any viewer. Each db holds only its
+rebuilt any time by reading them (percival db sync). One SQLite file PER PROGRAM,
+<program_dir>/percival.db, inspectable with the `sqlite3` CLI or any viewer. Each db holds only its
 own program's data — nothing crosses between programs.
 
     db.py <db> init
@@ -367,7 +367,7 @@ def view(con, kind, program, args):
     if not allp:
         row = con.execute("SELECT id FROM programs WHERE name=?", (program,)).fetchone()
         if not row:
-            print(f"program '{program}' not in db — run: kestrel db sync {program}", file=sys.stderr)
+            print(f"program '{program}' not in db — run: percival db sync {program}", file=sys.stderr)
             return 3
         where.append("t.program_id=?"); params.append(row[0])
     progcol = "p.name AS program, " if allp else ""

@@ -1,75 +1,98 @@
 # shellcheck shell=bash
 # lib/core.sh — paths, global config, program loading. Sourced by the dispatcher.
 
-KESTREL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/kestrel"
-KESTREL_CONFIG="$KESTREL_CONFIG_DIR/config"
-KESTREL_LAST="$KESTREL_CONFIG_DIR/last_program"
+PERCIVAL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/percival"
+PERCIVAL_CONFIG="$PERCIVAL_CONFIG_DIR/config"
+PERCIVAL_LAST="$PERCIVAL_CONFIG_DIR/last_program"
+# This tool used to be called kestrel: on first run move its config dir across, so nothing is asked
+# or lost (the workspace you chose and the last program you used carry over).
+_old_cfg="${XDG_CONFIG_HOME:-$HOME/.config}/kestrel"
+if [ -d "$_old_cfg" ] && [ ! -e "$PERCIVAL_CONFIG_DIR" ] && mv "$_old_cfg" "$PERCIVAL_CONFIG_DIR" 2>/dev/null; then
+  if [ -f "$PERCIVAL_CONFIG" ]; then
+    sed 's/^KESTREL_WORKSPACE=/PERCIVAL_WORKSPACE=/' "$PERCIVAL_CONFIG" > "$PERCIVAL_CONFIG.new" \
+      && mv "$PERCIVAL_CONFIG.new" "$PERCIVAL_CONFIG"
+  fi
+fi
+unset _old_cfg
 DEFAULT_UA='Mozilla/5.0'
 DEFAULT_WORKSPACE="$HOME/hunts"
 
 # Workspace = the folder where programs live. Precedence:
-#   1. KESTREL_BASE in the environment (one-off override)
-#   2. KESTREL_WORKSPACE saved in ~/.config/kestrel/config (chosen once, on first use)
+#   1. PERCIVAL_BASE in the environment (one-off override)
+#   2. PERCIVAL_WORKSPACE saved in ~/.config/percival/config (chosen once, on first use)
 #   3. ~/hunts
-_env_base="${KESTREL_BASE:-}"
+_env_base="${PERCIVAL_BASE:-${KESTREL_BASE:-}}"   # KESTREL_BASE: the old name, still honoured
 # global config (optional): workspace, notification settings
 # shellcheck disable=SC1090
-[ -f "$KESTREL_CONFIG" ] && . "$KESTREL_CONFIG"
-KESTREL_BASE="${_env_base:-${KESTREL_WORKSPACE:-$DEFAULT_WORKSPACE}}"
+[ -f "$PERCIVAL_CONFIG" ] && . "$PERCIVAL_CONFIG"
+PERCIVAL_BASE="${_env_base:-${PERCIVAL_WORKSPACE:-$DEFAULT_WORKSPACE}}"
 unset _env_base
 
-# global_set KEY VALUE — persist a key in ~/.config/kestrel/config
+# global_set KEY VALUE — persist a key in ~/.config/percival/config
 global_set() {
-  mkdir -p "$KESTREL_CONFIG_DIR"
-  [ -f "$KESTREL_CONFIG" ] || printf '# kestrel global config\n' > "$KESTREL_CONFIG"
-  conf_set "$KESTREL_CONFIG" "$1" "$2"
+  mkdir -p "$PERCIVAL_CONFIG_DIR"
+  [ -f "$PERCIVAL_CONFIG" ] || printf '# percival global config\n' > "$PERCIVAL_CONFIG"
+  conf_set "$PERCIVAL_CONFIG" "$1" "$2"
 }
 
 # ensure_workspace — first use: ask once where programs live, create it, remember it
 ensure_workspace() {
-  if ! grep -q '^KESTREL_WORKSPACE=' "$KESTREL_CONFIG" 2>/dev/null; then
+  if ! grep -q '^PERCIVAL_WORKSPACE=' "$PERCIVAL_CONFIG" 2>/dev/null; then
     local w
     ui_section workspace
-    ui_dim "First run: where should kestrel keep your programs?"
-    w="$(ui_ask 'Workspace folder' "$KESTREL_BASE")"
+    ui_dim "First run: where should percival keep your programs?"
+    w="$(ui_ask 'Workspace folder' "$PERCIVAL_BASE")"
     w="${w/#\~/$HOME}"
-    KESTREL_BASE="$w"
-    global_set KESTREL_WORKSPACE "$w"
+    PERCIVAL_BASE="$w"
+    global_set PERCIVAL_WORKSPACE "$w"
   fi
-  mkdir -p "$KESTREL_BASE" 2>/dev/null || ui_die "cannot create workspace $KESTREL_BASE"
-  [ -w "$KESTREL_BASE" ] || ui_die "workspace $KESTREL_BASE is not writable"
+  mkdir -p "$PERCIVAL_BASE" 2>/dev/null || ui_die "cannot create workspace $PERCIVAL_BASE"
+  [ -w "$PERCIVAL_BASE" ] || ui_die "workspace $PERCIVAL_BASE is not writable"
 }
 
 # valid program name: letters, digits, dot, dash, underscore
 valid_program_name() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; }
 
-program_dir() { printf '%s/%s' "$KESTREL_BASE" "$1"; }
+program_dir() { printf '%s/%s' "$PERCIVAL_BASE" "$1"; }
 
-# list program names (folders that hold a kestrel.conf or a legacy env.sh)
+# migrate_program_dir <dir> — a program made when this tool was called kestrel: rename its two files,
+# nothing else changes (recon data, content, js, notes and the report stay exactly where they are)
+migrate_program_dir() {
+  local d="${1%/}"
+  if [ ! -f "$d/percival.conf" ] && [ -f "$d/kestrel.conf" ]; then
+    mv "$d/kestrel.conf" "$d/percival.conf" || return 0
+    [ -f "$d/kestrel.db" ] && [ ! -e "$d/percival.db" ] && mv "$d/kestrel.db" "$d/percival.db"
+    ui_info migrated "$(basename "$d"): kestrel.conf → percival.conf (data untouched)" 2>/dev/null || true
+  fi
+  return 0
+}
+
+# list program names (folders that hold a percival.conf, an old kestrel.conf or a legacy env.sh)
 list_programs() {
   local d
-  [ -d "$KESTREL_BASE" ] || return 0
-  for d in "$KESTREL_BASE"/*/; do
-    [ -f "$d/kestrel.conf" ] || [ -f "$d/env.sh" ] || continue
+  [ -d "$PERCIVAL_BASE" ] || return 0
+  for d in "$PERCIVAL_BASE"/*/; do
+    migrate_program_dir "$d"
+    [ -f "$d/percival.conf" ] || [ -f "$d/env.sh" ] || continue
     basename "$d"
   done
 }
 
-remember_program() { mkdir -p "$KESTREL_CONFIG_DIR" && printf '%s\n' "$1" > "$KESTREL_LAST"; }
+remember_program() { mkdir -p "$PERCIVAL_CONFIG_DIR" && printf '%s\n' "$1" > "$PERCIVAL_LAST"; }
 
 # resolve_program [name] → prints the program name, or dies with a hint.
 # No name given: the last program used, or the only one that exists.
 resolve_program() {
   local p="${1:-}" all n
   if [ -z "$p" ]; then
-    if [ -s "$KESTREL_LAST" ]; then p="$(cat "$KESTREL_LAST")"
+    if [ -s "$PERCIVAL_LAST" ]; then p="$(cat "$PERCIVAL_LAST")"
     else
       all="$(list_programs)"; n=$(printf '%s' "$all" | grep -c . || true)
       [ "$n" -eq 1 ] && p="$all"
     fi
   fi
-  [ -n "$p" ] || ui_die "no program given" "kestrel ls   ·   kestrel new <program>"
-  [ -d "$(program_dir "$p")" ] || ui_die "program '$p' not found in $KESTREL_BASE" "kestrel new $p"
+  [ -n "$p" ] || ui_die "no program given" "percival ls   ·   percival new <program>"
+  [ -d "$(program_dir "$p")" ] || ui_die "program '$p' not found in $PERCIVAL_BASE" "percival new $p"
   printf '%s' "$p"
 }
 
@@ -78,7 +101,7 @@ resolve_program() {
 conf_write() {
   local f="$1"; shift
   {
-    printf '# kestrel program config — written by kestrel, edit with care\n'
+    printf '# percival program config — written by percival, edit with care\n'
     while [ $# -ge 2 ]; do printf '%s=%q\n' "$1" "$2"; shift 2; done
   } > "$f"
 }
@@ -98,20 +121,21 @@ conf_set() {
 load_program() {
   PROGRAM="$1"
   WORK="$(program_dir "$PROGRAM")"
-  if [ -f "$WORK/kestrel.conf" ]; then
+  migrate_program_dir "$WORK"
+  if [ -f "$WORK/percival.conf" ]; then
     # shellcheck disable=SC1091
-    . "$WORK/kestrel.conf"
+    . "$WORK/percival.conf"
   elif [ -f "$WORK/env.sh" ]; then
     # legacy program created by bb-init: still usable
     # shellcheck disable=SC1091
     . "$WORK/env.sh"
     LEGACY_PROGRAM=1
   else
-    ui_die "'$PROGRAM' has no kestrel.conf" "kestrel new $PROGRAM"
+    ui_die "'$PROGRAM' has no percival.conf" "percival new $PROGRAM"
   fi
   UA="${UA:-$DEFAULT_UA${UA_SUFFIX:+ $UA_SUFFIX}}"
   RATE="${RATE:-5}"
-  CURATED="${CURATED:-$KESTREL_ROOT/wordlists/curated.txt}"
+  CURATED="${CURATED:-$PERCIVAL_ROOT/wordlists/curated.txt}"
   HEADERS_FILE="$WORK/headers.txt"
   # legacy single header: the first custom header (engine scripts also read HEADERS_FILE)
   YWH="${YWH:-}"
@@ -139,7 +163,7 @@ load_program() {
 write_legacy_env() {
   local w="$1"
   {
-    printf '# Session variables for: %s  (generated by kestrel — kestrel loads these itself)\n' "$PROGRAM"
+    printf '# Session variables for: %s  (generated by percival — percival loads these itself)\n' "$PROGRAM"
     printf 'export %s=%q\n' \
       PROGRAM "$PROGRAM" WORK "$w" UA "$UA" YWH "$YWH" RATE "$RATE" CURATED "$CURATED" \
       SCOPE_FILE "$w/recon/scope.txt" APEX_FILE "$w/recon/apex.txt" HOSTS_FILE "$w/recon/hosts.txt" \
@@ -164,7 +188,7 @@ chrome_bin() {
 chrome_ok() { [ -n "$(chrome_bin)" ]; }
 
 # ---- intercepting proxy (Burp / Caido) ------------------------------------
-# proxy_default_url — the proxy configured for this program (PROXY_URL in kestrel.conf),
+# proxy_default_url — the proxy configured for this program (PROXY_URL in percival.conf),
 # else the conventional Burp/Caido default on localhost:8080.
 proxy_default_url() { printf '%s' "${PROXY_URL:-http://127.0.0.1:8080}"; }
 
@@ -194,7 +218,7 @@ proxy_for_run() {
 }
 
 # proxy_up <url|host:port> — true if something is listening there (TCP connect, no deps).
-# Used as a preflight so kestrel never fires a whole run at a proxy that isn't running.
+# Used as a preflight so percival never fires a whole run at a proxy that isn't running.
 proxy_up() {
   local hp="${1#*://}"; hp="${hp%%/*}"
   local host="${hp%%:*}" port="${hp##*:}"

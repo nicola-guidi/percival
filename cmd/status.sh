@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# kestrel status [program] [--full] — what the last run produced, leads first. No traffic.
-# kestrel verify [program] [--full] — scope QA: nothing out of scope touched. No traffic.
+# percival status [program] [--full] — what the last run produced, leads first. No traffic.
+# percival verify [program] [--full] — scope QA: nothing out of scope touched. No traffic.
 
 STATUS_LEADS=(
   "api_json|APIs returning JSON 200"
@@ -15,9 +15,9 @@ cmd_status() {
   local prog="" full=0 a
   for a in "$@"; do
     case "$a" in
-      -h|--help) printf 'usage: kestrel status [program] [--full]\n\n  --full   stage-by-stage detail with lead previews\n' >&2; return 0 ;;
+      -h|--help) printf 'usage: percival status [program] [--full]\n\n  --full   stage-by-stage detail with lead previews\n' >&2; return 0 ;;
       --full) full=1 ;;
-      -*) ui_die "unknown option '$a'" "kestrel status --help" ;;
+      -*) ui_die "unknown option '$a'" "percival status --help" ;;
       *) prog="$a" ;;
     esac
   done
@@ -25,7 +25,7 @@ cmd_status() {
   load_program "$prog"
 
   if [ "$full" -eq 1 ]; then
-    bash "$KESTREL_ROOT/libexec/bb-status.sh"; return
+    bash "$PERCIVAL_ROOT/libexec/bb-status.sh"; return
   fi
 
   local last="never"
@@ -34,7 +34,7 @@ cmd_status() {
   ui_info program "${PLATFORM:-?} · last full run: $last"
 
   if [ ! -s recon/live.txt ]; then
-    ui_blank; ui_warn recon "no results yet"; ui_next "kestrel recon $prog"; ui_blank; return 0
+    ui_blank; ui_warn recon "no results yet"; ui_next "percival recon $prog"; ui_blank; return 0
   fi
 
   # funnel: the numbers must narrow down
@@ -44,15 +44,15 @@ cmd_status() {
   # checks: only what needs attention, plus the verify verdict
   ui_section checks
   local n=0
-  bash "$KESTREL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
+  bash "$PERCIVAL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
   if [ "$n" -eq 0 ]; then ui_ok verify "nothing out of scope touched"
-  else ui_err verify "$n problem(s) — kestrel verify $prog"; fi
+  else ui_err verify "$n problem(s) — percival verify $prog"; fi
   if [ -f notes/tools.log ]; then
     local errs; errs=$(grep -ciE '\[err\]|\bEOF\b|panic|fatal' notes/tools.log 2>/dev/null || true)
     [ "${errs:-0}" -gt 0 ] && ui_warn tools "$errs error lines in notes/tools.log (often a WAF dropping the tools)"
   fi
   [ -s recon/ports/shodan.txt ] && ui_ok shodan "$(count_lines recon/ports/shodan.txt) IPs with known open ports · recon/ports/shodan.txt"
-  [ -s recon/secrets/th_all.jsonl ] && ui_warn secrets "$(count_lines recon/secrets/th_all.jsonl) verified secret(s) · kestrel secrets $prog"
+  [ -s recon/secrets/th_all.jsonl ] && ui_warn secrets "$(count_lines recon/secrets/th_all.jsonl) verified secret(s) · percival secrets $prog"
 
   # leads: count + file, nothing else
   ui_section leads
@@ -67,7 +67,7 @@ cmd_status() {
 
   ui_blank
   [ -f report.html ] && ui_info report "$WORK/report.html"
-  ui_next "kestrel status $prog --full"
+  ui_next "percival status $prog --full"
   ui_blank
 }
 
@@ -75,19 +75,19 @@ cmd_verify() {
   local prog="" full=0 a
   for a in "$@"; do
     case "$a" in
-      -h|--help) printf 'usage: kestrel verify [program] [--full]\n\n  Safety: nothing out of scope touched. Coverage: every in-scope asset tested.\n' >&2; return 0 ;;
+      -h|--help) printf 'usage: percival verify [program] [--full]\n\n  Safety: nothing out of scope touched. Coverage: every in-scope asset tested.\n' >&2; return 0 ;;
       --full) full=1 ;;
-      -*) ui_die "unknown option '$a'" "kestrel verify --help" ;;
+      -*) ui_die "unknown option '$a'" "percival verify --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
-  if [ "$full" -eq 1 ]; then bash "$KESTREL_ROOT/libexec/bb-verify.sh"; return; fi
+  if [ "$full" -eq 1 ]; then bash "$PERCIVAL_ROOT/libexec/bb-verify.sh"; return; fi
 
   ui_header verify "$prog"
   local n=0
-  bash "$KESTREL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
+  bash "$PERCIVAL_ROOT/libexec/bb-verify.sh" > notes/verify.log 2>&1 || n=$?
   # keep only the engine's ✗/⚠ lines, without colours and indentation
   local issues
   issues="$(sed 's/\x1b\[[0-9;]*m//g' notes/verify.log | grep -E '^[[:space:]]*(✗|⚠)' | sed 's/^[[:space:]]*//' | head -n 8 || true)"
@@ -104,7 +104,7 @@ cmd_verify() {
     done <<< "$issues"
   fi
   ui_blank
-  ui_next "kestrel verify $prog --full   (details: notes/verify.log)"
+  ui_next "percival verify $prog --full   (details: notes/verify.log)"
   ui_blank
   [ "$n" -eq 0 ]
 }

@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel wayback [program] — historical URLs from public archives (OSINT, no traffic).
+# percival wayback [program] — historical URLs from public archives (OSINT, no traffic).
 #
 #   Pulls URLs the target's hosts exposed in the past, which the live crawl can't see:
 #     1. Wayback Machine CDX API  (always — no dependency, zero packets to the target)
@@ -14,16 +14,16 @@ cmd_wayback() {
   local prog="" a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,12p' "$KESTREL_ROOT/cmd/wayback.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
-      -*) ui_die "unknown option '$a'" "kestrel wayback --help" ;;
+      -h|--help) sed -n '2,12p' "$PERCIVAL_ROOT/cmd/wayback.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -*) ui_die "unknown option '$a'" "percival wayback --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
   ui_header wayback "$prog"
-  have python3 || ui_die "python3 is required" "kestrel doctor --install"
-  [ -s recon/apex.txt ] || [ -s recon/hosts.txt ] || ui_die "no scope hosts yet" "kestrel new $prog"
+  have python3 || ui_die "python3 is required" "percival doctor --install"
+  [ -s recon/apex.txt ] || [ -s recon/hosts.txt ] || ui_die "no scope hosts yet" "percival new $prog"
 
   local t0; t0=$(date +%s)
   ui_section "osint · public archives (no traffic to the target)"
@@ -43,7 +43,7 @@ cmd_wayback() {
 
   # ---- step 1 (always): Wayback CDX + scope filtering (the python helper does both)
   ui_running wayback "querying Wayback CDX + filtering to scope…"
-  local out; out="$(python3 "$KESTREL_ROOT/lib/wayback.py" "$WORK" ${extra:+"$extra"} 2>/dev/null)" \
+  local out; out="$(python3 "$PERCIVAL_ROOT/lib/wayback.py" "$WORK" ${extra:+"$extra"} 2>/dev/null)" \
     || ui_die "wayback failed"
   local W_URLS W_INTERESTING W_PARAMS
   eval "$(printf '%s\n' "$out" | sed 's/^\([A-Z0-9_]*\)=\(.*\)$/W_\1=\x27\2\x27/')"
@@ -59,6 +59,6 @@ cmd_wayback() {
 
   ui_blank
   ui_ok done "$(ui_elapsed $(( $(date +%s) - t0 ))) · recon/wayback/"
-  ui_next "kestrel triage $prog"
+  ui_next "percival triage $prog"
   ui_blank
 }

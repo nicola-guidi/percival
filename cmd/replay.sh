@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# kestrel replay [program] — re-send what kestrel ALREADY found through an intercepting proxy
+# percival replay [program] — re-send what percival ALREADY found through an intercepting proxy
 # (Burp / Caido), so the proxy's history/sitemap fills with the discovered surface without
 # re-running recon. This is the "I forgot the --proxy flag" safety net: no re-enumeration, no
 # fuzzing, just the URLs on disk requested once through the proxy.
@@ -8,7 +8,7 @@
 # Archived (wayback) URLs are left out by default: they are usually hundreds of thousands and
 # many belong to hosts that no longer exist. Add --wayback for them (still live hosts only).
 #
-#   kestrel replay [program] [--wayback] [--dry-run] [--proxy[=url]]
+#   percival replay [program] [--wayback] [--dry-run] [--proxy[=url]]
 #     --wayback   also replay the archived URLs (recon/wayback/*) of live hosts
 #     --dry-run   only show what would be sent and how long it takes; send nothing
 
@@ -16,20 +16,20 @@ cmd_replay() {
   local prog="" proxy_want=on wayback=0 dry=0 a
   for a in "$@"; do
     case "$a" in
-      -h|--help) sed -n '2,13p' "$KESTREL_ROOT/cmd/replay.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -h|--help) sed -n '2,13p' "$PERCIVAL_ROOT/cmd/replay.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
       --proxy)    proxy_want=on ;;
       --proxy=*)  proxy_want=on; PROXY_URL="${a#--proxy=}" ;;
       --wayback)  wayback=1 ;;
       --dry-run)  dry=1 ;;
-      -*) ui_die "unknown option '$a'" "kestrel replay --help" ;;
+      -*) ui_die "unknown option '$a'" "percival replay --help" ;;
       *) prog="$a" ;;
     esac
   done
   prog="$(resolve_program "$prog")"
   load_program "$prog"
   ui_header replay "$prog"
-  tool_ok httpx || ui_die "httpx missing" "kestrel doctor --install"
-  [ -s recon/live.txt ] || ui_die "no live hosts yet to replay" "kestrel recon $prog"
+  tool_ok httpx || ui_die "httpx missing" "percival doctor --install"
+  [ -s recon/live.txt ] || ui_die "no live hosts yet to replay" "percival recon $prog"
 
   # ---- the set of LIVE hosts: only URLs on these are replayed (a dead or archived-only host would
   # just fail DNS, and recon/live.txt is already scope-filtered)
@@ -73,7 +73,7 @@ cmd_replay() {
   if [ "$n" -eq 0 ]; then
     rm -rf "$tmp"
     ui_warn empty "nothing to replay on the live hosts"
-    ui_next "kestrel recon $prog"
+    ui_next "percival recon $prog"
     ui_blank; return 0
   fi
 
@@ -89,13 +89,13 @@ cmd_replay() {
   if [ "$dry" -eq 1 ]; then
     rm -rf "$tmp"
     ui_ok dry-run "nothing sent"
-    ui_next "kestrel replay $prog   (run it for real)"
+    ui_next "percival replay $prog   (run it for real)"
     ui_blank; return 0
   fi
 
   # ---- the proxy is the whole point here: resolve + preflight (hard stop if it isn't listening)
   proxy_for_run "$proxy_want"
-  [ -n "${PROXY:-}" ] || { rm -rf "$tmp"; ui_die "replay needs a proxy" "kestrel replay $prog --proxy"; }
+  [ -n "${PROXY:-}" ] || { rm -rf "$tmp"; ui_die "replay needs a proxy" "percival replay $prog --proxy"; }
 
   # ---- headers: same identity recon uses (UA + the program's custom headers)
   local hdrs=(-H "User-Agent: $UA") _h
