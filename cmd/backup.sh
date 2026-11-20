@@ -72,8 +72,10 @@ cmd_backup() {
   for p in "${progs[@]}"; do _backup_one "$p" "$out" "$lite" || fails=$((fails+1)); done
 
   ui_blank
-  ui_warn secrets "the archive contains headers.txt and any secrets found — keep it private"
-  ui_next "restore: tar -xzf <archive> -C $PERCIVAL_BASE"
-  ui_blank
+  if [ "$fails" -lt "${#progs[@]}" ]; then
+    ui_warn secrets "the archive contains headers.txt and any secrets found — keep it private"
+    ui_next "restore: tar -xzf <archive> -C $PERCIVAL_BASE"
+    ui_blank
+  fi
   [ "$fails" -eq 0 ]
 }

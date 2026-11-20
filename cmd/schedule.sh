@@ -50,7 +50,7 @@ cmd_schedule() {
   local prog="" when="" at="03:00" action=install
   while [ $# -gt 0 ]; do
     case "$1" in
-      -h|--help) sed -n '2,13p' "$PERCIVAL_ROOT/cmd/schedule.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
+      -h|--help) sed -n '2,11p' "$PERCIVAL_ROOT/cmd/schedule.sh" | sed 's/^# \{0,1\}//' >&2; return 0 ;;
       --list)    action=list ;;
       --remove)  action=remove ;;
       --at)      shift; at="${1:-03:00}" ;;
@@ -67,7 +67,7 @@ cmd_schedule() {
 
   # -------------------------------------------------------------- list
   if [ "$action" = list ]; then
-    ui_header schedule "$(basename "$PERCIVAL_BASE")"
+    ui_header schedule "all programs"
     local any=0
     if _sched_has_systemd && [ -d "$udir" ]; then
       local f base cal
