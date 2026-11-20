@@ -27,16 +27,6 @@ percival triage acme          # offline triage of the catch into leads
 percival report acme          # one HTML report from whatever data exists
 ```
 
-## Renamed from kestrel
-
-This tool used to be called **kestrel**. Nothing of yours is lost: the first time `percival` runs it moves
-`~/.config/kestrel/` to `~/.config/percival/` and, for each program, renames `kestrel.conf` to
-`percival.conf` and `kestrel.db` to `percival.db`. The program folders themselves (recon, content, js,
-notes, report) stay where they are. Schedules created under the old name are reported by
-`percival schedule --list`; creating the schedule again with `percival schedule <program> daily` replaces
-the old one. `install.sh` removes the old `kestrel` command from `~/.local/bin`. The old `KESTREL_BASE`
-variable is still honoured.
-
 ## Install
 
 A Debian-based system (Kali, Ubuntu, Debian) is the primary target; other systems work, but
